@@ -23,6 +23,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      # Elasticsearch needs this on Linux hosts; Docker Desktop already sets it
+      - run: sudo sysctl -w vm.max_map_count=262144
       # Unit and integration tests; Testcontainers starts real MongoDB and Elasticsearch
       - run: ./mvnw -B verify
       - name: Report failed tests as annotations
@@ -33,8 +35,11 @@ jobs:
           for path in glob.glob('target/surefire-reports/TEST-*.xml'):
               for case in ET.parse(path).getroot().iter('testcase'):
                   for problem in list(case.iter('failure')) + list(case.iter('error')):
-                      message = (problem.get('message') or problem.text or '').replace('\n', ' ')[:900]
-                      print(f"::error title={case.get('classname')}.{case.get('name')}::{message}")
+                      trace = problem.text or ''
+                      # The last "Caused by" lines hold the real reason; the first line is often generic
+                      causes = [l.strip() for l in trace.splitlines() if l.strip().startswith('Caused by')]
+                      message = ' <- '.join(causes[-3:]) if causes else (problem.get('message') or trace)
+                      print(f"::error title={case.get('classname')}.{case.get('name')}::{message.replace(chr(10), ' ')[:1500]}")
           PY
 
   frontend:
@@ -66,6 +71,7 @@ jobs:
           node-version: '26.12.1'
           cache: npm
           cache-dependency-path: e2e/package-lock.json
+      - run: sudo sysctl -w vm.max_map_count=262144
       - name: Start the stack
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Wait for demo data to be indexed
