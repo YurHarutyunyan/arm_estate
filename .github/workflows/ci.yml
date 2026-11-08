@@ -25,6 +25,17 @@ jobs:
           cache: maven
       # Unit and integration tests; Testcontainers starts real MongoDB and Elasticsearch
       - run: ./mvnw -B verify
+      - name: Report failed tests as annotations
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('target/surefire-reports/TEST-*.xml'):
+              for case in ET.parse(path).getroot().iter('testcase'):
+                  for problem in list(case.iter('failure')) + list(case.iter('error')):
+                      message = (problem.get('message') or problem.text or '').replace('\n', ' ')[:900]
+                      print(f"::error title={case.get('classname')}.{case.get('name')}::{message}")
+          PY
 
   frontend:
     name: Frontend lint and build
