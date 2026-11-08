@@ -1,0 +1,59 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "normalizer": {
+        "lowercase": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id": { "type": "keyword" },
+      "ownerId": { "type": "keyword" },
+      "title": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "en": { "type": "text", "analyzer": "english" },
+          "ru": { "type": "text", "analyzer": "russian" },
+          "hy": { "type": "text", "analyzer": "armenian" },
+          "suggest": { "type": "search_as_you_type" },
+          "raw": { "type": "keyword", "normalizer": "lowercase" }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": {
+          "en": { "type": "text", "analyzer": "english" },
+          "ru": { "type": "text", "analyzer": "russian" },
+          "hy": { "type": "text", "analyzer": "armenian" }
+        }
+      },
+      "district": { "type": "keyword" },
+      "districtName": {
+        "type": "text",
+        "fields": { "suggest": { "type": "search_as_you_type" } }
+      },
+      "address": { "type": "text" },
+      "priceUsd": { "type": "integer" },
+      "rooms": { "type": "integer" },
+      "areaSqm": { "type": "integer" },
+      "floor": { "type": "integer" },
+      "totalFloors": { "type": "integer" },
+      "buildingType": { "type": "keyword" },
+      "amenities": { "type": "keyword" },
+      "furnished": { "type": "boolean" },
+      "petsAllowed": { "type": "boolean" },
+      "imageUrl": { "type": "keyword", "index": false },
+      "createdAt": { "type": "date", "format": "epoch_millis" },
+      "updatedAt": { "type": "date", "format": "epoch_millis" }
+    }
+  }
+}

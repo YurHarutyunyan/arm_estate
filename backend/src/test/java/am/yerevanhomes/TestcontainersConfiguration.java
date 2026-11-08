@@ -22,7 +22,7 @@ public class TestcontainersConfiguration {
     @Bean
     @ServiceConnection
     MongoDBContainer mongoDbContainer() {
-        // Testcontainers starts Mongo as a single-node replica set, which Change Streams need
-        return new MongoDBContainer(DockerImageName.parse("mongo:8"));
+        // Change Streams need a replica set
+        return new MongoDBContainer(DockerImageName.parse("mongo:8")).withReplicaSet();
     }
 }

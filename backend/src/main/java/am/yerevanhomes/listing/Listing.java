@@ -20,6 +20,9 @@ public class Listing {
     @Version
     private Long version;
 
+    @Indexed
+    private String ownerId;
+
     private String title;
     private String description;
 
@@ -51,6 +54,8 @@ public class Listing {
     public void setId(String id) { this.id = id; }
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
+    public String getOwnerId() { return ownerId; }
+    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }

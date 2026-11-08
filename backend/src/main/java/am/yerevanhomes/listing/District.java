@@ -1,16 +1,26 @@
 package am.yerevanhomes.listing;
 
 public enum District {
-    KENTRON,
-    ARABKIR,
-    DAVTASHEN,
-    AJAPNYAK,
-    MALATIA_SEBASTIA,
-    SHENGAVIT,
-    EREBUNI,
-    NOR_NORK,
-    AVAN,
-    KANAKER_ZEYTUN,
-    NORK_MARASH,
-    NUBARASHEN
+    KENTRON("Kentron"),
+    ARABKIR("Arabkir"),
+    DAVTASHEN("Davtashen"),
+    AJAPNYAK("Ajapnyak"),
+    MALATIA_SEBASTIA("Malatia-Sebastia"),
+    SHENGAVIT("Shengavit"),
+    EREBUNI("Erebuni"),
+    NOR_NORK("Nor Nork"),
+    AVAN("Avan"),
+    KANAKER_ZEYTUN("Kanaker-Zeytun"),
+    NORK_MARASH("Nork-Marash"),
+    NUBARASHEN("Nubarashen");
+
+    private final String displayName;
+
+    District(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String displayName() {
+        return displayName;
+    }
 }
