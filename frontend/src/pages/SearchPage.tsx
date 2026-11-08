@@ -81,6 +81,8 @@ export function SearchPage() {
           Find your next home in <span>Yerevan</span>
         </h1>
         <SearchBox
+          // Remount when the URL's search changes (Back button, district pick) so the box shows it
+          key={state.q}
           initialValue={state.q}
           onSearch={(q) => update({ q, sort: '' })}
           onPickDistrict={(district) =>

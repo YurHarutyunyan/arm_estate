@@ -1,5 +1,5 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/context'
 
 export function BrandMark() {
   return (

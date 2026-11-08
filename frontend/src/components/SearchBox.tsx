@@ -30,8 +30,6 @@ export function SearchBox({ initialValue, onSearch, onPickDistrict }: Props) {
   const [active, setActive] = useState(-1)
   const wrapper = useRef<HTMLDivElement>(null)
 
-  useEffect(() => setText(initialValue), [initialValue])
-
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(text.trim()), 200)
     return () => window.clearTimeout(timer)
@@ -49,8 +47,6 @@ export function SearchBox({ initialValue, onSearch, onPickDistrict }: Props) {
     ...(data?.listings ?? []).map((l) => ({ key: `l-${l.id}`, kind: 'listing' as const, label: l.title, detail: l.districtName, value: l.id })),
   ]
   const showList = open && debounced.length >= 2 && options.length > 0
-
-  useEffect(() => setActive(-1), [debounced])
 
   // Close when clicking outside
   useEffect(() => {
@@ -115,6 +111,7 @@ export function SearchBox({ initialValue, onSearch, onPickDistrict }: Props) {
         onChange={(e) => {
           setText(e.target.value)
           setOpen(true)
+          setActive(-1)
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}

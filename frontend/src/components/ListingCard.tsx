@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { SearchItem } from '../api/types'
+import { formatPrice } from '../format'
 import { ListingImage } from './ListingImage'
-
-export function formatPrice(usd: number) {
-  return `$${usd.toLocaleString('en-US')}`
-}
 
 /** The server escapes the listing text and only adds <mark> tags, so this HTML is safe to render. */
 function Highlighted({ html, fallback }: { html: string | null; fallback: string }) {

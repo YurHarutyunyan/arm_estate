@@ -1,8 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
-import { DISTRICTS, type ListingInput } from '../api/types'
+import { DISTRICTS, type Listing, type ListingInput } from '../api/types'
 import { Field } from './AuthPages'
 
 const EMPTY: ListingInput = {
@@ -24,46 +24,58 @@ const EMPTY: ListingInput = {
 
 const AMENITIES = ['balcony', 'parking', 'elevator', 'air conditioning', 'dishwasher', 'washing machine', 'heating', 'wifi', 'terrace', 'security']
 
+function toInput(listing: Listing): ListingInput {
+  return {
+    title: listing.title,
+    description: listing.description,
+    district: listing.district,
+    address: listing.address,
+    priceUsd: listing.priceUsd,
+    rooms: listing.rooms,
+    areaSqm: listing.areaSqm,
+    floor: listing.floor,
+    totalFloors: listing.totalFloors,
+    buildingType: listing.buildingType,
+    amenities: listing.amenities,
+    furnished: listing.furnished,
+    petsAllowed: listing.petsAllowed,
+    imageUrl: listing.imageUrl,
+  }
+}
+
 /** Create a listing, or edit one. Edits send the ETag back, so a concurrent change is detected. */
 export function ListingFormPage() {
   const { id } = useParams()
-  const editing = !!id
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState<ListingInput>(EMPTY)
-  const [etag, setEtag] = useState('')
-  const [conflict, setConflict] = useState(false)
-
   const existing = useQuery({
     queryKey: ['listing', id],
     queryFn: ({ signal }) => api.listing(id!, signal),
-    enabled: editing,
+    enabled: !!id,
   })
 
-  useEffect(() => {
-    if (!existing.data) return
-    const { listing } = existing.data
-    setForm({
-      title: listing.title,
-      description: listing.description,
-      district: listing.district,
-      address: listing.address,
-      priceUsd: listing.priceUsd,
-      rooms: listing.rooms,
-      areaSqm: listing.areaSqm,
-      floor: listing.floor,
-      totalFloors: listing.totalFloors,
-      buildingType: listing.buildingType,
-      amenities: listing.amenities,
-      furnished: listing.furnished,
-      petsAllowed: listing.petsAllowed,
-      imageUrl: listing.imageUrl,
-    })
-    setEtag(existing.data.etag)
-  }, [existing.data])
+  if (!id) return <ListingForm initial={EMPTY} />
+  if (existing.isError) return <p className="alert">{existing.error.message}</p>
+  if (!existing.data) return <div className="skeleton" aria-label="Loading listing" />
+  // Keyed by version: loading a newer version starts the form over from it
+  return (
+    <ListingForm
+      key={existing.data.etag}
+      id={id}
+      etag={existing.data.etag}
+      initial={toInput(existing.data.listing)}
+      onReload={() => existing.refetch()}
+    />
+  )
+}
+
+function ListingForm({ id, etag, initial, onReload }: { id?: string; etag?: string; initial: ListingInput; onReload?: () => void }) {
+  const editing = !!id
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<ListingInput>(initial)
+  const [conflict, setConflict] = useState(false)
 
   const save = useMutation({
-    mutationFn: () => (editing ? api.updateListing(id!, etag, form) : api.createListing(form)),
+    mutationFn: () => (editing ? api.updateListing(id!, etag!, form) : api.createListing(form)),
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['listing', saved.id] })
       queryClient.invalidateQueries({ queryKey: ['me', 'listings'] })
@@ -86,8 +98,6 @@ export function ListingFormPage() {
     if (!floorError) save.mutate()
   }
 
-  if (editing && existing.isError) return <p className="alert">{existing.error.message}</p>
-
   return (
     <form className="card form-page form-page--wide" onSubmit={submit} noValidate>
       <h1>{editing ? 'Edit listing' : 'New listing'}</h1>
@@ -98,10 +108,10 @@ export function ListingFormPage() {
           <button
             type="button"
             className="button button--ghost"
-            onClick={async () => {
+            onClick={() => {
               setConflict(false)
               save.reset()
-              await existing.refetch()
+              onReload?.()
             }}
           >
             Load the latest version
@@ -158,7 +168,7 @@ export function ListingFormPage() {
             <option value="MONOLITH">Monolith</option>
           </select>
         </Field>
-        <Field id="floor" label="Floor" error={errors.floor ?? floorError}>
+        <Field id="floor" label="Floor" error={errors.floor ?? errors.floorWithinBuilding ?? floorError}>
           <input id="floor" className="input" type="number" min={0} max={40} value={form.floor} onChange={number('floor')} />
         </Field>
         <Field id="totalFloors" label="Floors in building" error={errors.totalFloors}>
@@ -199,7 +209,7 @@ export function ListingFormPage() {
       </div>
 
       <div className="actions">
-        <button className="button" type="submit" disabled={save.isPending || (editing && !etag)}>
+        <button className="button" type="submit" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Publish listing'}
         </button>
         <button type="button" className="button button--ghost" onClick={() => navigate(-1)}>

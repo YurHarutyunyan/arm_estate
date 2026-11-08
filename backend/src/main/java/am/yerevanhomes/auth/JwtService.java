@@ -8,6 +8,8 @@ import java.time.Instant;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -29,6 +31,8 @@ import am.yerevanhomes.user.User;
 public class JwtService {
 
     static final String ROLES_CLAIM = "roles";
+    private static final String DEV_SECRET_PREFIX = "local-dev-secret";
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
     private static final String ISSUER = "yerevan-homes";
 
     private final SecretKey key;
@@ -39,6 +43,10 @@ public class JwtService {
     public JwtService(@Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.ttl:PT2H}") Duration ttl,
             Clock clock) {
+        if (secret.startsWith(DEV_SECRET_PREFIX)) {
+            log.warn("Using the built-in development JWT secret. Set APP_JWT_SECRET before deploying, "
+                    + "or anyone can forge tokens.");
+        }
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
             throw new IllegalStateException("app.jwt.secret must be at least 32 bytes for HS256");

@@ -2,10 +2,12 @@ package am.yerevanhomes.listing;
 
 import java.util.List;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /** Body for creating or replacing a listing. */
@@ -23,7 +25,13 @@ public record ListingRequest(
         @Size(max = 20) List<@NotBlank @Size(max = 40) String> amenities,
         Boolean furnished,
         Boolean petsAllowed,
-        @Size(max = 500) String imageUrl) {
+        // Only https links, so a stored value can never become a javascript: or data: URL in a page
+        @Size(max = 500) @Pattern(regexp = "https://\\S+", message = "must be an https URL") String imageUrl) {
+
+    @AssertTrue(message = "floor can't be higher than the number of floors")
+    boolean isFloorWithinBuilding() {
+        return floor == null || totalFloors == null || floor <= totalFloors;
+    }
 
     void applyTo(Listing listing) {
         listing.setTitle(title.strip());

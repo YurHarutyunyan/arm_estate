@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useAuth } from './auth/AuthContext'
+import { useAuth } from './auth/context'
 import { Layout } from './components/Layout'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import { ListingFormPage } from './pages/ListingFormPage'

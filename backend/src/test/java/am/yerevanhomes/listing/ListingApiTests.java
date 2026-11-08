@@ -79,4 +79,19 @@ class ListingApiTests {
                 .jsonPath("$.errors.rooms").exists();
     }
 
+    @Test
+    void rejectsFloorAboveTheBuildingAndNonHttpsImages() {
+        ListingRequest valid = validRequest(900);
+        ListingRequest tooHigh = new ListingRequest(valid.title(), valid.description(), valid.district(), valid.address(),
+                900, 2, 60, 12, 9, valid.buildingType(), valid.amenities(), true, false, null);
+        ListingRequest scriptUrl = new ListingRequest(valid.title(), valid.description(), valid.district(), valid.address(),
+                900, 2, 60, 3, 9, valid.buildingType(), valid.amenities(), true, false, "javascript:alert(1)");
+
+        client.post().uri("/api/listings").header("Authorization", owner).body(tooHigh).exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors.floorWithinBuilding").exists();
+        client.post().uri("/api/listings").header("Authorization", owner).body(scriptUrl).exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors.imageUrl").isEqualTo("must be an https URL");
+    }
 }

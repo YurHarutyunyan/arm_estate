@@ -172,7 +172,8 @@ public class ListingSyncService implements SmartLifecycle {
             case DELETE -> {
                 String id = idOf(event.getDocumentKey().get("_id"));
                 Document before = event.getFullDocumentBeforeChange();
-                Long lastVersion = before == null ? null : before.get("version", Number.class).longValue();
+                Number version = before == null ? null : before.get("version", Number.class);
+                Long lastVersion = version == null ? null : version.longValue();
                 index.delete(id, lastVersion);
             }
             case DROP, RENAME, DROP_DATABASE, INVALIDATE -> {

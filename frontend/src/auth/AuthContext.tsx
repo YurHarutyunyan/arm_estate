@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, setToken, setUnauthorizedHandler } from '../api/client'
+import { setToken, setUnauthorizedHandler } from '../api/client'
 import type { AuthResponse, Profile } from '../api/types'
+import { AuthContext, type AuthState } from './context'
 
 const STORAGE_KEY = 'yerevan-homes.session'
 
@@ -10,15 +11,6 @@ interface Session {
   expiresAt: string
   user: Profile
 }
-
-interface AuthState {
-  user: Profile | null
-  isOwner: boolean
-  signIn: (response: AuthResponse) => void
-  signOut: () => void
-}
-
-const AuthContext = createContext<AuthState | null>(null)
 
 function loadSession(): Session | null {
   try {
@@ -87,12 +79,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error('useAuth must be used inside AuthProvider')
-  return context
-}
-
-// Re-exported so pages can call the API without importing two modules
-export { api }
