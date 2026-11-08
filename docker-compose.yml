@@ -1,0 +1,36 @@
+services:
+  mongo:
+    image: mongo:8
+    # Change Streams need a replica set, so Mongo runs as a single-node one
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the replica set on first start, then reports healthy once it has a primary
+      test: >
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+volumes:
+  mongo-data:
+  es-data:

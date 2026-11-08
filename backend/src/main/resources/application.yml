@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: yerevan-homes
+  mongodb:
+    # directConnection lets the app reach the single-node replica set from outside Docker
+    uri: ${MONGODB_URI:mongodb://localhost:27017/yerevan-homes?directConnection=true}
+  data:
+    mongodb:
+      auto-index-creation: true
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
