@@ -133,6 +133,28 @@ class AuthApiTests {
                 .expectStatus().isOk();
     }
 
+    @Test
+    void myListingsShowsOnlyTheCallersListingsNewestFirst() {
+        String owner = TestAuth.owner(client);
+        String other = TestAuth.owner(client);
+        String first = createListing(owner, 800);
+        String second = createListing(owner, 900);
+        createListing(other, 1000);
+
+        client.get().uri("/api/me/listings").header("Authorization", owner).exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(2)
+                .jsonPath("$[0].id").isEqualTo(second)
+                .jsonPath("$[1].id").isEqualTo(first);
+    }
+
+    private String createListing(String bearer, int price) {
+        return client.post().uri("/api/listings").header("Authorization", bearer).body(validRequest(price)).exchange()
+                .expectStatus().isCreated()
+                .expectBody(ListingResponse.class).returnResult().getResponseBody().id();
+    }
+
     private String loginDetail(String email, String password) {
         return client.post().uri("/api/auth/login").body(Map.of("email", email, "password", password)).exchange()
                 .expectStatus().isUnauthorized()

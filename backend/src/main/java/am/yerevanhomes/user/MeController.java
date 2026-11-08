@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import am.yerevanhomes.auth.AuthDtos.Profile;
 import am.yerevanhomes.common.NotFoundException;
+import am.yerevanhomes.listing.ListingRepository;
 import am.yerevanhomes.listing.ListingResponse;
 
 /** The signed-in user's profile and favorites. */
@@ -23,16 +24,24 @@ public class MeController {
 
     private final UserRepository users;
     private final FavoriteService favorites;
+    private final ListingRepository listings;
 
-    public MeController(UserRepository users, FavoriteService favorites) {
+    public MeController(UserRepository users, FavoriteService favorites, ListingRepository listings) {
         this.users = users;
         this.favorites = favorites;
+        this.listings = listings;
     }
 
     @GetMapping
     public Profile me(@AuthenticationPrincipal Jwt jwt) {
         return users.findById(jwt.getSubject()).map(Profile::from)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    /** Listings the signed-in user published, newest first. */
+    @GetMapping("/listings")
+    public List<ListingResponse> myListings(@AuthenticationPrincipal Jwt jwt) {
+        return listings.findByOwnerIdOrderByCreatedAtDesc(jwt.getSubject()).stream().map(ListingResponse::from).toList();
     }
 
     @GetMapping("/favorites")
