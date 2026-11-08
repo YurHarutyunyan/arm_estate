@@ -8,6 +8,13 @@ tolerance, live facet counts, owner accounts that publish listings, and favorite
 **Stack:** Java 21 · Spring Boot 4 · MongoDB 8 · Elasticsearch 9 · React 19 + TypeScript · Docker ·
 Testcontainers · Playwright · GitHub Actions
 
+![Search with a typo, highlighted matches and live facet counts](docs/screenshots/search-typo-facets.png)
+
+<p>
+  <img src="docs/screenshots/autocomplete.png" alt="Keyboard-friendly autocomplete" width="62%">
+  <img src="docs/screenshots/mobile.png" alt="Phone layout at 390px" width="30%">
+</p>
+
 ## Run it
 
 ```bash

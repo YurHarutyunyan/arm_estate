@@ -163,8 +163,15 @@ h3 {
   border-radius: 999px;
 }
 
-.nav a:hover,
-.nav a[aria-current='page'] {
+/* The Sign up link is a button; keep its dark text on the green background */
+.nav a.button,
+.nav a.button:hover {
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.nav a:not(.button):hover,
+.nav a:not(.button)[aria-current='page'] {
   color: var(--text);
   background: var(--surface);
   text-decoration: none;

@@ -52,6 +52,12 @@ test.describe('owners', () => {
     await second.getByRole('button', { name: 'Load the latest version' }).click()
     await expect(second.getByLabel('Monthly price (USD)')).toHaveValue('901')
 
+    // Clean up so test listings don't pile up in the demo data
+    await first.goto(editUrl.replace(/\/edit$/, ''))
+    first.once('dialog', (dialog) => dialog.accept())
+    await first.getByRole('button', { name: 'Delete' }).click()
+    await expect(first).toHaveURL(/\/my-listings$/)
+
     await secondContext.close()
     await first.close()
   })
