@@ -21,6 +21,8 @@ app:
     # Local development only. Production must set APP_JWT_SECRET (32+ random bytes).
     secret: ${APP_JWT_SECRET:local-dev-secret-change-me-0123456789abcdef}
     ttl: ${APP_JWT_TTL:PT2H}
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
   admin:
     # When both are set, an admin account is created on startup if it doesn't exist
     email: ${APP_ADMIN_EMAIL:}

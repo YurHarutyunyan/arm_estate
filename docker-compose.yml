@@ -31,6 +31,23 @@ services:
       timeout: 10s
       retries: 30
 
+  backend:
+    build: ./backend
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/yerevan-homes?directConnection=true
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-local-dev-secret-change-me-0123456789abcdef}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_SEED_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
 volumes:
   mongo-data:
   es-data:
