@@ -9,6 +9,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** Turns exceptions into RFC 9457 problem details. */
 @RestControllerAdvice
@@ -19,6 +21,28 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail notFound(NotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    ProblemDetail badRequest(BadRequestException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /** Unknown enum value or a non-number in a query parameter, e.g. {@code ?district=Paris}. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail typeMismatch(MethodArgumentTypeMismatchException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Invalid value '" + e.getValue() + "' for parameter '" + e.getName() + "'");
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ProblemDetail invalidParameters(HandlerMethodValidationException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request has invalid parameters");
+        Map<String, String> errors = e.getParameterValidationResults().stream()
+                .collect(Collectors.toMap(r -> r.getMethodParameter().getParameterName(),
+                        r -> r.getResolvableErrors().getFirst().getDefaultMessage(), (a, b) -> a));
+        problem.setProperty("errors", errors);
+        return problem;
     }
 
     @ExceptionHandler(PreconditionRequiredException.class)
