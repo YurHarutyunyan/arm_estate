@@ -69,8 +69,9 @@ h3 {
 .backdrop__shape {
   position: absolute;
   border-radius: 46% 54% 58% 42% / 44% 40% 60% 56%;
-  filter: blur(1px);
   opacity: 0.9;
+  /* Own compositor layer: the drift animation moves it on the GPU without repainting the page */
+  will-change: transform;
 }
 
 .backdrop__shape--a {
