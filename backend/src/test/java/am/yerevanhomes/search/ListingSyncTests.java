@@ -1,6 +1,7 @@
 package am.yerevanhomes.search;
 
 import static am.yerevanhomes.TestListings.validRequest;
+import static am.yerevanhomes.TestListings.OWNER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -45,20 +46,20 @@ class ListingSyncTests {
 
     @Test
     void createUpdateAndDeleteReachTheIndex() {
-        Listing listing = service.create(validRequest(900));
+        Listing listing = service.create(OWNER, validRequest(900));
         await().atMost(TIMEOUT).until(() -> priceInIndex(listing.getId()).equals(Optional.of(900)));
 
-        service.update(listing.getId(), 0, validRequest(1200));
+        service.update(OWNER, listing.getId(), 0, validRequest(1200));
         await().atMost(TIMEOUT).until(() -> priceInIndex(listing.getId()).equals(Optional.of(1200)));
 
-        service.delete(listing.getId(), 1);
+        service.delete(OWNER, listing.getId(), 1);
         await().atMost(TIMEOUT).until(() -> index.find(listing.getId()).isEmpty());
     }
 
     @Test
     void staleWriteCannotOverwriteNewerData() {
-        Listing listing = service.create(validRequest(900));
-        Listing v1 = service.update(listing.getId(), 0, validRequest(1500));
+        Listing listing = service.create(OWNER, validRequest(900));
+        Listing v1 = service.update(OWNER, listing.getId(), 0, validRequest(1500));
         await().atMost(TIMEOUT).until(() -> priceInIndex(v1.getId()).equals(Optional.of(1500)));
 
         // A late event or a slow reindex delivers version 0 after version 1 is already indexed
@@ -70,9 +71,9 @@ class ListingSyncTests {
 
     @Test
     void staleWriteCannotResurrectADeletedListing() {
-        Listing listing = service.create(validRequest(900));
+        Listing listing = service.create(OWNER, validRequest(900));
         await().atMost(TIMEOUT).until(() -> index.find(listing.getId()).isPresent());
-        service.delete(listing.getId(), 0);
+        service.delete(OWNER, listing.getId(), 0);
         await().atMost(TIMEOUT).until(() -> index.find(listing.getId()).isEmpty());
 
         // The delete left a versioned tombstone, so replaying the old insert is rejected
@@ -84,15 +85,15 @@ class ListingSyncTests {
 
     @Test
     void changesMadeWhileSyncIsStoppedAreCaughtUpOnRestart() {
-        Listing kept = service.create(validRequest(900));
-        Listing removed = service.create(validRequest(950));
+        Listing kept = service.create(OWNER, validRequest(900));
+        Listing removed = service.create(OWNER, validRequest(950));
         await().atMost(TIMEOUT).until(() -> index.find(removed.getId()).isPresent());
 
         sync.stop();
         try {
-            service.update(kept.getId(), 0, validRequest(1300));
-            service.delete(removed.getId(), 0);
-            Listing added = service.create(validRequest(700));
+            service.update(OWNER, kept.getId(), 0, validRequest(1300));
+            service.delete(OWNER, removed.getId(), 0);
+            Listing added = service.create(OWNER, validRequest(700));
 
             // Nothing moves while the sync is down
             assertThat(priceInIndex(kept.getId())).contains(900);
@@ -115,7 +116,7 @@ class ListingSyncTests {
 
     @Test
     void fullReindexIsIdempotentAndSkipsUpToDateDocuments() {
-        List<Listing> listings = List.of(service.create(validRequest(800)), service.create(validRequest(850)));
+        List<Listing> listings = List.of(service.create(OWNER, validRequest(800)), service.create(OWNER, validRequest(850)));
         await().atMost(TIMEOUT).until(() -> index.count() == 2);
 
         ListingIndex.BulkResult result = index.bulkIndex(repository.findAll());

@@ -5,6 +5,8 @@ import java.net.URI;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import am.yerevanhomes.auth.CurrentUser;
 import am.yerevanhomes.common.ETags;
 
 /**
@@ -38,22 +41,23 @@ public class ListingController {
     }
 
     @PostMapping
-    public ResponseEntity<ListingResponse> create(@Valid @RequestBody ListingRequest request) {
-        Listing created = service.create(request);
+    public ResponseEntity<ListingResponse> create(@AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody ListingRequest request) {
+        Listing created = service.create(CurrentUser.from(jwt), request);
         return withETag(ResponseEntity.created(URI.create("/api/listings/" + created.getId())), created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ListingResponse> update(@PathVariable String id,
+    public ResponseEntity<ListingResponse> update(@AuthenticationPrincipal Jwt jwt, @PathVariable String id,
             @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @Valid @RequestBody ListingRequest request) {
-        return withETag(ResponseEntity.ok(), service.update(id, ETags.parseIfMatch(ifMatch), request));
+        return withETag(ResponseEntity.ok(), service.update(CurrentUser.from(jwt), id, ETags.parseIfMatch(ifMatch), request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id,
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable String id,
             @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
-        service.delete(id, ETags.parseIfMatch(ifMatch));
+        service.delete(CurrentUser.from(jwt), id, ETags.parseIfMatch(ifMatch));
         return ResponseEntity.noContent().build();
     }
 

@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
+import am.yerevanhomes.TestAuth;
 import am.yerevanhomes.TestcontainersConfiguration;
 
 import static am.yerevanhomes.TestListings.validRequest;
@@ -29,14 +30,17 @@ class ListingApiTests {
     @Autowired
     ListingRepository repository;
 
+    String owner;
+
     @BeforeEach
     void clean() {
         repository.deleteAll();
+        owner = TestAuth.owner(client);
     }
 
     @Test
     void createsReadsUpdatesAndDeletesAListing() {
-        EntityExchangeResult<ListingResponse> created = client.post().uri("/api/listings").body(validRequest(950))
+        EntityExchangeResult<ListingResponse> created = client.post().uri("/api/listings").header("Authorization", owner).body(validRequest(950))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().valueEquals("ETag", "\"0\"")
@@ -49,12 +53,12 @@ class ListingApiTests {
                 .expectHeader().valueEquals("ETag", "\"0\"")
                 .expectBody().jsonPath("$.priceUsd").isEqualTo(950);
 
-        client.put().uri("/api/listings/{id}", id).header("If-Match", "\"0\"").body(validRequest(1100)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"").body(validRequest(1100)).exchange()
                 .expectStatus().isOk()
                 .expectHeader().valueEquals("ETag", "\"1\"")
                 .expectBody().jsonPath("$.priceUsd").isEqualTo(1100);
 
-        client.delete().uri("/api/listings/{id}", id).header("If-Match", "\"1\"").exchange()
+        client.delete().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"1\"").exchange()
                 .expectStatus().isNoContent();
 
         client.get().uri("/api/listings/{id}", id).exchange()
@@ -66,7 +70,7 @@ class ListingApiTests {
     void rejectsInvalidListingWithFieldErrors() {
         Map<String, Object> invalid = Map.of("title", "", "priceUsd", 10);
 
-        client.post().uri("/api/listings").body(invalid).exchange()
+        client.post().uri("/api/listings").header("Authorization", owner).body(invalid).exchange()
                 .expectStatus().isBadRequest()
                 .expectBody()
                 .jsonPath("$.errors.title").exists()

@@ -1,13 +1,19 @@
 package am.yerevanhomes;
 
 import java.util.List;
+import java.util.Set;
 
+import am.yerevanhomes.auth.CurrentUser;
 import am.yerevanhomes.listing.BuildingType;
 import am.yerevanhomes.listing.District;
 import am.yerevanhomes.listing.ListingRequest;
+import am.yerevanhomes.user.Role;
 
 /** Sample listings for tests. */
 public final class TestListings {
+
+    /** Owner used by tests that call ListingService directly. */
+    public static final CurrentUser OWNER = new CurrentUser("test-owner", Set.of(Role.USER, Role.OWNER));
 
     private TestListings() {
     }

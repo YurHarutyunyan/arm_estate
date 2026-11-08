@@ -1,6 +1,7 @@
 package am.yerevanhomes.search;
 
 import static am.yerevanhomes.TestListings.request;
+import static am.yerevanhomes.TestListings.OWNER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.awaitility.Awaitility.await;
@@ -182,7 +183,7 @@ class ListingSearchApiTests {
     }
 
     private String create(ListingRequest request) {
-        return listings.create(request).getId();
+        return listings.create(OWNER, request).getId();
     }
 
     private void waitIndexed(int expected) {

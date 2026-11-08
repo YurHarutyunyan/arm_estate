@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
+import am.yerevanhomes.TestAuth;
 import am.yerevanhomes.TestcontainersConfiguration;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -33,18 +34,21 @@ class ListingConcurrencyTests {
     @Autowired
     ListingRepository repository;
 
+    String owner;
+
     @BeforeEach
     void clean() {
         repository.deleteAll();
+        owner = TestAuth.owner(client);
     }
 
     @Test
     void updateWithoutIfMatchIsRejected() {
         String id = create();
 
-        client.put().uri("/api/listings/{id}", id).body(validRequest(1000)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).body(validRequest(1000)).exchange()
                 .expectStatus().isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
-        client.delete().uri("/api/listings/{id}", id).exchange()
+        client.delete().uri("/api/listings/{id}", id).header("Authorization", owner).exchange()
                 .expectStatus().isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
     }
 
@@ -52,7 +56,7 @@ class ListingConcurrencyTests {
     void malformedIfMatchIsRejected() {
         String id = create();
 
-        client.put().uri("/api/listings/{id}", id).header("If-Match", "*").body(validRequest(1000)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "*").body(validRequest(1000)).exchange()
                 .expectStatus().isEqualTo(HttpStatus.PRECONDITION_FAILED);
     }
 
@@ -61,10 +65,10 @@ class ListingConcurrencyTests {
         String id = create();
 
         // Both editors loaded version 0. The first saves...
-        client.put().uri("/api/listings/{id}", id).header("If-Match", "\"0\"").body(validRequest(1000)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"").body(validRequest(1000)).exchange()
                 .expectStatus().isOk();
         // ...the second must not overwrite that change.
-        client.put().uri("/api/listings/{id}", id).header("If-Match", "\"0\"").body(validRequest(2000)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"").body(validRequest(2000)).exchange()
                 .expectStatus().isEqualTo(HttpStatus.PRECONDITION_FAILED);
 
         assertThat(repository.findById(id).orElseThrow().getPriceUsd()).isEqualTo(1000);
@@ -73,10 +77,10 @@ class ListingConcurrencyTests {
     @Test
     void deleteOfAnOutdatedVersionIsRejected() {
         String id = create();
-        client.put().uri("/api/listings/{id}", id).header("If-Match", "\"0\"").body(validRequest(1000)).exchange()
+        client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"").body(validRequest(1000)).exchange()
                 .expectStatus().isOk();
 
-        client.delete().uri("/api/listings/{id}", id).header("If-Match", "\"0\"").exchange()
+        client.delete().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"").exchange()
                 .expectStatus().isEqualTo(HttpStatus.PRECONDITION_FAILED);
 
         assertThat(repository.existsById(id)).isTrue();
@@ -92,7 +96,7 @@ class ListingConcurrencyTests {
             int price = 1000 + i;
             calls.add(() -> {
                 start.await();
-                return (HttpStatus) client.put().uri("/api/listings/{id}", id).header("If-Match", "\"0\"")
+                return (HttpStatus) client.put().uri("/api/listings/{id}", id).header("Authorization", owner).header("If-Match", "\"0\"")
                         .body(validRequest(price)).exchange()
                         .returnResult(String.class).getStatus();
             });
@@ -113,7 +117,7 @@ class ListingConcurrencyTests {
     }
 
     private String create() {
-        return client.post().uri("/api/listings").body(validRequest(950)).exchange()
+        return client.post().uri("/api/listings").header("Authorization", owner).body(validRequest(950)).exchange()
                 .expectStatus().isCreated()
                 .expectBody(ListingResponse.class).returnResult().getResponseBody().id();
     }

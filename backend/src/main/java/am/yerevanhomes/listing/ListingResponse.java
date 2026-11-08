@@ -5,6 +5,7 @@ import java.util.List;
 
 public record ListingResponse(
         String id,
+        String ownerId,
         String title,
         String description,
         District district,
@@ -22,8 +23,8 @@ public record ListingResponse(
         Instant createdAt,
         Instant updatedAt) {
 
-    static ListingResponse from(Listing l) {
-        return new ListingResponse(l.getId(), l.getTitle(), l.getDescription(), l.getDistrict(), l.getAddress(),
+    public static ListingResponse from(Listing l) {
+        return new ListingResponse(l.getId(), l.getOwnerId(), l.getTitle(), l.getDescription(), l.getDistrict(), l.getAddress(),
                 l.getPriceUsd(), l.getRooms(), l.getAreaSqm(), l.getFloor(), l.getTotalFloors(), l.getBuildingType(),
                 l.getAmenities(), l.isFurnished(), l.isPetsAllowed(), l.getImageUrl(), l.getCreatedAt(), l.getUpdatedAt());
     }
