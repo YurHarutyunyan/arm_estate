@@ -19,6 +19,7 @@ import am.yerevanhomes.TestcontainersConfiguration;
 import am.yerevanhomes.listing.Listing;
 import am.yerevanhomes.listing.ListingRepository;
 import am.yerevanhomes.listing.ListingService;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -37,6 +38,9 @@ class ListingSyncTests {
 
     @Autowired
     ListingSyncService sync;
+
+    @Autowired
+    ElasticsearchClient elasticsearch;
 
     @BeforeEach
     void clean() {
@@ -109,6 +113,26 @@ class ListingSyncTests {
                 assertThat(index.find(removed.getId())).isEmpty();
                 assertThat(index.find(added.getId())).isPresent();
             });
+        } finally {
+            if (!sync.isRunning()) {
+                sync.start();
+            }
+        }
+    }
+
+    @Test
+    void lostSearchIndexIsRebuiltOnRestart() throws Exception {
+        Listing listing = service.create(OWNER, validRequest(900));
+        await().atMost(TIMEOUT).until(() -> index.find(listing.getId()).isPresent());
+
+        sync.stop();
+        try {
+            // Elasticsearch loses its data while MongoDB, and the saved resume token, survive
+            elasticsearch.indices().delete(d -> d.index(ListingIndex.NAME));
+
+            sync.start();
+
+            await().atMost(TIMEOUT).until(() -> sync.isReady() && index.find(listing.getId()).isPresent());
         } finally {
             if (!sync.isRunning()) {
                 sync.start();

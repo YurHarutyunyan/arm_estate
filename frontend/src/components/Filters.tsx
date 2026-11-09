@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Bucket, SearchResult } from '../api/types'
+import { districtLabel, type Bucket, type SearchResult } from '../api/types'
 
 export interface FilterState {
   district: string[]
@@ -95,7 +95,7 @@ function FacetGroup({
   // Keep selected options visible even when they have no matches right now
   const shown = [...(buckets ?? [])]
   for (const value of selected) {
-    if (!shown.some((b) => b.value === value)) shown.push({ value, label: value, count: 0 })
+    if (!shown.some((b) => b.value === value)) shown.push({ value, label: fallbackLabel(value), count: 0 })
   }
   if (shown.length === 0) return null
 
@@ -175,4 +175,10 @@ function PriceFilter({
       {invalid && <span className="field__error">Minimum is higher than maximum</span>}
     </fieldset>
   )
+}
+
+/** Label for a selected value that has no facet bucket right now: KENTRON is "Kentron", STONE "Stone". */
+function fallbackLabel(value: string) {
+  const district = districtLabel(value)
+  return district !== value ? district : value.charAt(0) + value.slice(1).toLowerCase()
 }

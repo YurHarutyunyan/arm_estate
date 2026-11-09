@@ -53,13 +53,19 @@ public class ListingIndex {
         return indexVersion(mongoVersion) + 1;
     }
 
-    /** Creates the index if needed and waits until its shard can serve reads and writes. */
-    public void createIfMissing() {
+    /**
+     * Creates the index if needed and waits until its shard can serve reads and writes.
+     *
+     * @return true if this call created the index, so it is empty and needs a full reindex
+     */
+    public boolean createIfMissing() {
         try {
+            boolean created = false;
             if (!client.indices().exists(e -> e.index(NAME)).value()) {
                 try (InputStream json = new ClassPathResource("elasticsearch/listings-index.json").getInputStream()) {
                     client.indices().create(c -> c.index(NAME).withJson(json));
                     log.info("Created Elasticsearch index '{}'", NAME);
+                    created = true;
                 } catch (ElasticsearchException e) {
                     // Another instance may have created it at the same moment
                     if (!"resource_already_exists_exception".equals(e.error().type())) {
@@ -69,6 +75,7 @@ public class ListingIndex {
             }
             // A just-created index answers 503 until its primary shard is started
             client.cluster().health(h -> h.index(NAME).waitForStatus(HealthStatus.Yellow).timeout(t -> t.time("30s")));
+            return created;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

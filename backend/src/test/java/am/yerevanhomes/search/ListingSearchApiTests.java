@@ -171,6 +171,10 @@ class ListingSearchApiTests {
         client.get().uri("/api/listings/search?district=PARIS").exchange().expectStatus().isBadRequest();
         client.get().uri("/api/listings/search?size=500").exchange().expectStatus().isBadRequest();
         client.get().uri("/api/listings/search?cursor=not-a-cursor").exchange().expectStatus().isBadRequest();
+        // Right shape, wrong types: {"s":"NEWEST","a":["abc","x"]}
+        String tampered = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"s\":\"NEWEST\",\"a\":[\"abc\",\"x\"]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        client.get().uri("/api/listings/search?cursor=" + tampered).exchange().expectStatus().isBadRequest();
         client.get().uri("/api/listings/suggest?q=").exchange().expectStatus().isBadRequest();
     }
 

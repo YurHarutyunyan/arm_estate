@@ -37,6 +37,8 @@ import am.yerevanhomes.listing.Listing;
  * opened <em>before</em> a full reindex. Changes made during the reindex are then replayed by the
  * stream, and versioned writes make the overlap harmless.</li>
  * <li>Deletes read the deleted document's last version from the change stream pre-image.</li>
+ * <li>If the index is missing on start (its data was lost), it is rebuilt from MongoDB even when a
+ * resume token exists.</li>
  * <li>Any failure restarts the loop from the last saved token with a growing backoff.</li>
  * </ul>
  */
@@ -133,9 +135,16 @@ public class ListingSyncService implements SmartLifecycle {
     private void follow() {
         // Done here rather than at startup, so the app starts even if Elasticsearch isn't up yet;
         // the loop retries with backoff until both stores are reachable
-        index.createIfMissing();
+        boolean indexIsNew = index.createIfMissing();
         enablePreImages();
         BsonDocument token = state.loadResumeToken();
+        if (indexIsNew && token != null) {
+            // The index was lost (Elasticsearch data wiped) while MongoDB kept the token. Resuming
+            // would only apply new changes to an empty index, so rebuild it instead
+            log.warn("Search index was missing, rebuilding it from MongoDB");
+            state.clear();
+            token = null;
+        }
         ChangeStreamIterable<Document> stream = mongo.getCollection("listings").watch()
                 .fullDocument(FullDocument.UPDATE_LOOKUP)
                 .fullDocumentBeforeChange(FullDocumentBeforeChange.WHEN_AVAILABLE)

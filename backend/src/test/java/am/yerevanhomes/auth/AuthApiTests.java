@@ -143,8 +143,11 @@ class AuthApiTests {
                 .expectBody().jsonPath("$.detail").isEqualTo("Sign in to do this");
 
         String bearer = TestAuth.user(client);
-        // Flip one character in the signature
-        String tampered = bearer.substring(0, bearer.length() - 2) + (bearer.endsWith("A") ? "B" : "A") + bearer.charAt(bearer.length() - 1);
+        // Change one character of the signature. Not the last one: its low bits are padding, so
+        // some changes there decode to the same bytes
+        int at = bearer.length() - 2;
+        char replacement = bearer.charAt(at) == 'A' ? 'B' : 'A';
+        String tampered = bearer.substring(0, at) + replacement + bearer.substring(at + 1);
         client.get().uri("/api/me").header("Authorization", tampered).exchange()
                 .expectStatus().isUnauthorized();
     }

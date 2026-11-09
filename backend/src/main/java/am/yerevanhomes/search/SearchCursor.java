@@ -28,13 +28,26 @@ record SearchCursor(SearchSort sort, List<Object> after) {
             if (sort != expectedSort) {
                 throw new BadRequestException("cursor belongs to sort " + sort + ", not " + expectedSort);
             }
-            if (payload.a() == null || payload.a().size() != sort.clauses().size()) {
+            if (payload.a() == null || payload.a().size() != sort.clauses().size() || !wellTyped(payload.a())) {
                 throw new BadRequestException("cursor is invalid");
             }
             return new SearchCursor(sort, payload.a());
         } catch (IllegalArgumentException | JacksonException e) {
             throw new BadRequestException("cursor is invalid");
         }
+    }
+
+    /**
+     * Every sort ends with the id (a string); the clauses before it are numbers (score, price, date).
+     * Checked here so a tampered cursor is a 400, not an Elasticsearch error and a 500.
+     */
+    private static boolean wellTyped(List<Object> after) {
+        for (int i = 0; i < after.size() - 1; i++) {
+            if (!(after.get(i) instanceof Number)) {
+                return false;
+            }
+        }
+        return after.getLast() instanceof String;
     }
 
     private record Payload(String s, List<Object> a) {
