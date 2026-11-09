@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import am.yerevanhomes.listing.Listing;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.HealthStatus;
 import co.elastic.clients.elasticsearch._types.VersionType;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.GetResponse;
@@ -52,20 +53,22 @@ public class ListingIndex {
         return indexVersion(mongoVersion) + 1;
     }
 
+    /** Creates the index if needed and waits until its shard can serve reads and writes. */
     public void createIfMissing() {
         try {
-            if (client.indices().exists(e -> e.index(NAME)).value()) {
-                return;
+            if (!client.indices().exists(e -> e.index(NAME)).value()) {
+                try (InputStream json = new ClassPathResource("elasticsearch/listings-index.json").getInputStream()) {
+                    client.indices().create(c -> c.index(NAME).withJson(json));
+                    log.info("Created Elasticsearch index '{}'", NAME);
+                } catch (ElasticsearchException e) {
+                    // Another instance may have created it at the same moment
+                    if (!"resource_already_exists_exception".equals(e.error().type())) {
+                        throw e;
+                    }
+                }
             }
-            try (InputStream json = new ClassPathResource("elasticsearch/listings-index.json").getInputStream()) {
-                client.indices().create(c -> c.index(NAME).withJson(json));
-            }
-            log.info("Created Elasticsearch index '{}'", NAME);
-        } catch (ElasticsearchException e) {
-            // Another instance may have created it at the same moment
-            if (!"resource_already_exists_exception".equals(e.error().type())) {
-                throw e;
-            }
+            // A just-created index answers 503 until its primary shard is started
+            client.cluster().health(h -> h.index(NAME).waitForStatus(HealthStatus.Yellow).timeout(t -> t.time("30s")));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

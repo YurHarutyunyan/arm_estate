@@ -43,8 +43,13 @@ class ListingSearchApiTests {
     @Autowired
     ListingIndex index;
 
+    @Autowired
+    ListingSyncService sync;
+
     @BeforeEach
     void clean() {
+        // The index is built in the background at startup; wait until search is current
+        await().atMost(Duration.ofSeconds(60)).until(sync::isReady);
         repository.deleteAll();
         await().atMost(Duration.ofSeconds(15)).until(() -> index.count() == 0);
     }

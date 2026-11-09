@@ -55,6 +55,8 @@ public class ListingSyncService implements SmartLifecycle {
     private final boolean enabled;
 
     private volatile boolean running;
+    /** True while the index exists and the change stream is open, so search results are current. */
+    private volatile boolean ready;
     private volatile Thread worker;
     private volatile MongoChangeStreamCursor<ChangeStreamDocument<Document>> cursor;
 
@@ -98,6 +100,14 @@ public class ListingSyncService implements SmartLifecycle {
         return running;
     }
 
+    public boolean isReady() {
+        return ready;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     private void loop() {
         long backoffMs = 500;
         while (running) {
@@ -139,12 +149,14 @@ public class ListingSyncService implements SmartLifecycle {
         try (MongoChangeStreamCursor<ChangeStreamDocument<Document>> c = stream.cursor()) {
             cursor = c;
             if (token == null) {
+                ready = false;
                 reindexAll();
                 // A brand-new stream may have no token yet; then it is saved with the first event
                 if (c.getResumeToken() != null) {
                     state.saveResumeToken(c.getResumeToken());
                 }
             }
+            ready = true;
             while (running) {
                 ChangeStreamDocument<Document> event = c.tryNext();
                 if (event == null) {
@@ -158,6 +170,7 @@ public class ListingSyncService implements SmartLifecycle {
             }
         } finally {
             cursor = null;
+            ready = false;
         }
     }
 

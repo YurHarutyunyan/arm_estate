@@ -40,6 +40,8 @@ class ListingSyncTests {
 
     @BeforeEach
     void clean() {
+        // The index is built in the background at startup; wait until search is current
+        await().atMost(Duration.ofSeconds(60)).until(sync::isReady);
         repository.deleteAll();
         await().atMost(TIMEOUT).until(() -> index.count() == 0);
     }
