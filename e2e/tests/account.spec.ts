@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { signUp, uniqueEmail } from './helpers'
+import { registerViaApi, signUp, uniqueEmail } from './helpers'
 
 test.describe('accounts and favorites', () => {
   test('save a home, see it in favorites, then remove it', async ({ page }) => {
@@ -51,6 +51,30 @@ test.describe('accounts and favorites', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
+  })
+
+  test('signing up with an email that is taken explains why', async ({ page, request }) => {
+    const existing = await registerViaApi(request, 'find')
+    await page.goto('/register')
+    await page.getByLabel('Your name').fill('Second Person')
+    // Different case and spaces: emails are compared normalized
+    await page.getByLabel('Email').fill(`  ${existing.email.toUpperCase()} `)
+    await page.getByLabel(/^Password/).fill('another good password')
+    await page.getByRole('button', { name: 'Create account' }).click()
+
+    await expect(page.getByRole('alert')).toHaveText('An account with this email already exists')
+    await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(0)
+  })
+
+  test('staying signed in across reloads, and signing out', async ({ page }) => {
+    await signUp(page, 'find')
+    await page.reload()
+    await expect(page.getByRole('link', { name: 'Favorites' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Sign out' }).click()
+    await expect(page.getByRole('link', { name: 'Favorites' })).toHaveCount(0)
+    await page.reload()
     await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
   })
 

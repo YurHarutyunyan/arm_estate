@@ -89,12 +89,13 @@ Elasticsearch, which serves all search traffic.
 
 | Suite | What it covers | Run |
 |---|---|---|
-| Backend (JUnit 5 + Testcontainers) | 52 tests against real MongoDB and Elasticsearch: sync ordering and recovery, racing editors, parallel favorites and sign-ups, search relevance, typos, the three languages, facets, paging | `cd backend && ./mvnw verify` |
-| End-to-end (Playwright) | 19 tests through the real UI on desktop and a 375px phone, role-based locators only | `docker compose up -d --build --wait && cd e2e && npm ci && npx playwright test` |
+| Backend (JUnit 5 + Testcontainers) | 53 tests against real MongoDB and Elasticsearch: sync ordering and recovery (including a lost search index), racing editors, parallel favorites and sign-ups, search relevance, typos, the three languages, facets, paging | `cd backend && ./mvnw verify` |
+| End-to-end (Playwright) | 35 tests through the real UI and API on desktop and a 375px phone: search, filters, sorting, three languages, accounts, favorites, owner permissions, edit conflicts, security headers. Role-based locators | `docker compose up -d --build --wait && cd e2e && npm ci && npx playwright test` |
 
 Bugs caught before release:
 - **nginx gzip turned strong ETags weak** (`"0"` became `W/"0"`), which made every edit fail. Found by
   the end-to-end suite.
+- **nginx dropped the security headers from every page**: an `add_header` inside a `location` block silently replaces the server-level ones. Found in review; now covered by an end-to-end test.
 - **A blur filter on the background shapes** forced a full repaint on every animation frame.
 - **MongoDB 8 refuses to start on Linux kernels 6.19+** (SERVER-121912), which CI runners now use;
   the project runs on MongoDB 9.
