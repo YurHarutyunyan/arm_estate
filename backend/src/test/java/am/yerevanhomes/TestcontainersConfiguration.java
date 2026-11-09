@@ -22,7 +22,8 @@ public class TestcontainersConfiguration {
     @Bean
     @ServiceConnection
     MongoDBContainer mongoDbContainer() {
-        // Change Streams need a replica set
-        return new MongoDBContainer(DockerImageName.parse("mongo:8")).withReplicaSet();
+        // Change Streams need a replica set. MongoDB 8.x refuses to start on Linux kernels 6.19+
+        // (SERVER-121912), which CI runners use; 9.0 doesn't have that limitation.
+        return new MongoDBContainer(DockerImageName.parse("mongo:9.0.4")).withReplicaSet();
     }
 }

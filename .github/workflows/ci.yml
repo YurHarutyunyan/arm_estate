@@ -27,18 +27,6 @@ jobs:
       - run: sudo sysctl -w vm.max_map_count=262144
       # Unit and integration tests; Testcontainers starts real MongoDB and Elasticsearch
       - run: ./mvnw -B verify
-      - name: Diagnose MongoDB container
-        if: failure()
-        run: |
-          for v in 7.0 8.0 9.0; do
-            docker run -d --name "m$v" "mongo:$v" --replSet docker-rs --bind_ip_all >/dev/null || true
-          done
-          sleep 20
-          for v in 7.0 8.0 9.0; do
-            status=$(docker ps -a --filter "name=m$v" --format '{{.Status}}')
-            fatal=$(docker logs "m$v" 2>&1 | grep '"s":"F"' | head -1 | cut -c1-300)
-            echo "::warning title=mongo $v::$status $fatal"
-          done
       - name: Report failed tests as annotations
         if: failure()
         run: |

@@ -1,6 +1,6 @@
 services:
   mongo:
-    image: mongo:8
+    image: mongo:9.0.4
     # Change Streams need a replica set, so Mongo runs as a single-node one
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
