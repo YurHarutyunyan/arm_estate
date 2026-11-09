@@ -30,11 +30,15 @@ jobs:
       - name: Diagnose MongoDB container
         if: failure()
         run: |
-          docker run -d --name mongo-diag mongo:8 --replSet docker-rs --bind_ip_all || true
-          sleep 15
-          docker ps -a --filter name=mongo-diag --format '{{.Status}}' | sed 's/^/::warning title=mongo status::/'
-          docker logs mongo-diag 2>&1 | tail -25 | cut -c1-600 | sed 's/^/::warning title=mongo log::/'
-          uname -r | sed 's/^/::warning title=kernel::/'
+          for v in 7.0 8.0 9.0; do
+            docker run -d --name "m$v" "mongo:$v" --replSet docker-rs --bind_ip_all >/dev/null || true
+          done
+          sleep 20
+          for v in 7.0 8.0 9.0; do
+            status=$(docker ps -a --filter "name=m$v" --format '{{.Status}}')
+            fatal=$(docker logs "m$v" 2>&1 | grep '"s":"F"' | head -1 | cut -c1-300)
+            echo "::warning title=mongo $v::$status $fatal"
+          done
       - name: Report failed tests as annotations
         if: failure()
         run: |
