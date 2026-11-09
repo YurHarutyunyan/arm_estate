@@ -85,6 +85,42 @@ test.describe('search', () => {
     expect(new Set(names).size).toBe(names.length)
   })
 
+  test('typing a price keeps focus while the results update', async ({ page }) => {
+    await page.goto('/')
+    const min = page.getByLabel('Minimum price')
+
+    await min.fill('500')
+    await expect(page).toHaveURL(/minPrice=500/)
+    await expect(min).toBeFocused()
+
+    // Keep typing after the URL updated: the input must still take the keystrokes
+    await min.press('End')
+    await min.press('0')
+    await expect(min).toHaveValue('5000')
+    await expect(page).toHaveURL(/minPrice=5000/)
+  })
+
+  test('back button restores the previous search and clear empties the price', async ({ page }) => {
+    await page.goto('/?q=balcony')
+    const search = page.getByRole('combobox', { name: 'Search listings' })
+    await search.fill('terrace')
+    await search.press('Enter')
+    await expect(page).toHaveURL(/q=terrace/)
+    await expect(search).toBeFocused()
+    // Like a person, wait for the new results before going back. React Router renders URL changes
+    // as transitions, so a Back within milliseconds would cancel the "terrace" render entirely.
+    await expect(page.getByRole('heading', { name: /for “terrace”/ })).toBeVisible()
+
+    await page.goBack()
+    await expect(search).toHaveValue('balcony')
+
+    await page.getByLabel('Maximum price').fill('900')
+    await expect(page).toHaveURL(/maxPrice=900/)
+    await page.getByRole('button', { name: 'Clear filters' }).click()
+    await expect(page.getByLabel('Maximum price')).toHaveValue('')
+    await expect(page).not.toHaveURL(/maxPrice/)
+  })
+
   test('unknown pages and listings show a 404 page', async ({ page }) => {
     await page.goto('/no-such-page')
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()

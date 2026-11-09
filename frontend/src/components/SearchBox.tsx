@@ -25,6 +25,13 @@ export function SearchBox({ initialValue, onSearch, onPickDistrict }: Props) {
   const navigate = useNavigate()
   const listId = useId()
   const [text, setText] = useState(initialValue)
+
+  // Show the URL's search when it changes from elsewhere (Back button), without remounting
+  const [seenValue, setSeenValue] = useState(initialValue)
+  if (seenValue !== initialValue) {
+    setSeenValue(initialValue)
+    setText(initialValue)
+  }
   const [debounced, setDebounced] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)

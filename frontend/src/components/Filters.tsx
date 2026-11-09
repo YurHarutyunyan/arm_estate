@@ -42,8 +42,6 @@ export function Filters({ value, facets, open, onChange, onClear }: Props) {
         format={(b) => `${b.label} ${b.label === '1' ? 'room' : 'rooms'}`}
       />
       <PriceFilter
-        // Remount when the URL changes from elsewhere (Clear filters, Back) so the inputs follow it
-        key={`${value.minPrice}|${value.maxPrice}`}
         min={value.minPrice}
         max={value.maxPrice}
         range={facets?.price}
@@ -130,6 +128,15 @@ function PriceFilter({
 }) {
   const [draftMin, setDraftMin] = useState(min)
   const [draftMax, setDraftMax] = useState(max)
+
+  // Follow the URL when it changes from elsewhere (Clear filters, Back button). Adjusting state
+  // during render keeps the inputs mounted, so typing never loses focus.
+  const [seen, setSeen] = useState({ min, max })
+  if (seen.min !== min || seen.max !== max) {
+    setSeen({ min, max })
+    setDraftMin(min)
+    setDraftMax(max)
+  }
 
   // Apply after typing stops, so every keystroke doesn't start a search
   useEffect(() => {
