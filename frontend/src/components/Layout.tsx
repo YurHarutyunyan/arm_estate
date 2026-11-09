@@ -1,5 +1,6 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/context'
+import { ErrorBoundary } from './ErrorBoundary'
 
 export function BrandMark() {
   return (
@@ -16,6 +17,9 @@ export function Layout() {
 
   return (
     <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <div className="backdrop" aria-hidden="true">
         <div className="backdrop__shape backdrop__shape--a" />
         <div className="backdrop__shape backdrop__shape--b" />
@@ -54,8 +58,10 @@ export function Layout() {
           </nav>
         </div>
       </header>
-      <main className="page" id="main">
-        <Outlet />
+      <main className="page" id="main" tabIndex={-1}>
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </>
   )

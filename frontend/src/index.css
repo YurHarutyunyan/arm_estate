@@ -57,6 +57,27 @@ h3 {
   letter-spacing: -0.02em;
 }
 
+/* Visible only when focused with the keyboard */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+main:focus {
+  outline: none;
+}
+
 /* The two big green shapes behind everything */
 .backdrop {
   position: fixed;

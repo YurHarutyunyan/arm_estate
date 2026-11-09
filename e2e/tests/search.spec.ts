@@ -121,6 +121,17 @@ test.describe('search', () => {
     await expect(page).not.toHaveURL(/maxPrice/)
   })
 
+  test('keyboard users can skip straight to the content', async ({ page }) => {
+    await page.goto('/')
+    await page.keyboard.press('Tab')
+    const skip = page.getByRole('link', { name: 'Skip to content' })
+    await expect(skip).toBeFocused()
+    await expect(skip).toBeInViewport()
+
+    await page.keyboard.press('Enter')
+    await expect(page.locator('main')).toBeFocused()
+  })
+
   test('unknown pages and listings show a 404 page', async ({ page }) => {
     await page.goto('/no-such-page')
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
