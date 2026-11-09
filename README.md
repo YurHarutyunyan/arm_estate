@@ -5,7 +5,7 @@
 A rental search platform for Yerevan: full-text search in English, Russian and Armenian with typo
 tolerance, live facet counts, owner accounts that publish listings, and favorites.
 
-**Stack:** Java 21 · Spring Boot 4 · MongoDB 8 · Elasticsearch 9 · React 19 + TypeScript · Docker ·
+**Stack:** Java 21 · Spring Boot 4 · MongoDB 9 · Elasticsearch 9 · React 19 + TypeScript · Docker ·
 Testcontainers · Playwright · GitHub Actions
 
 ![Search with a typo, highlighted matches and live facet counts](docs/screenshots/search-typo-facets.png)
@@ -80,18 +80,24 @@ Elasticsearch, which serves all search traffic.
   listings. Nobody can sign up as admin.
 - Login answers wrong passwords and unknown emails identically, and compares against a dummy hash
   so both take the same time.
-- BCrypt (cost 12) with the 72-byte input limit enforced; errors as RFC 9457 problem details.
+- Failed logins are limited per account (10 per 15 minutes, then `429` with `Retry-After`).
+- BCrypt (cost 12); the 72-byte input limit is checked in bytes, not characters, since 40 Armenian
+  letters are already 80 bytes. Errors are RFC 9457 problem details.
 - nginx sends a strict Content-Security-Policy and other security headers.
 
 ## Tests
 
 | Suite | What it covers | Run |
 |---|---|---|
-| Backend (JUnit 5 + Testcontainers) | 46 tests against real MongoDB and Elasticsearch: sync ordering and recovery, racing editors, parallel favorites and sign-ups, search relevance, typos, the three languages, facets, paging | `cd backend && ./mvnw verify` |
-| End-to-end (Playwright) | 17 tests through the real UI on desktop and a 375px phone, role-based locators only | `docker compose up -d --build --wait && cd e2e && npm ci && npx playwright test` |
+| Backend (JUnit 5 + Testcontainers) | 52 tests against real MongoDB and Elasticsearch: sync ordering and recovery, racing editors, parallel favorites and sign-ups, search relevance, typos, the three languages, facets, paging | `cd backend && ./mvnw verify` |
+| End-to-end (Playwright) | 19 tests through the real UI on desktop and a 375px phone, role-based locators only | `docker compose up -d --build --wait && cd e2e && npm ci && npx playwright test` |
 
-Two production bugs were caught by the end-to-end suite before release: nginx gzip turning strong
-ETags weak (breaking every edit), and a blur filter causing a full repaint on every animation frame.
+Bugs caught before release:
+- **nginx gzip turned strong ETags weak** (`"0"` became `W/"0"`), which made every edit fail. Found by
+  the end-to-end suite.
+- **A blur filter on the background shapes** forced a full repaint on every animation frame.
+- **MongoDB 8 refuses to start on Linux kernels 6.19+** (SERVER-121912), which CI runners now use;
+  the project runs on MongoDB 9.
 
 ## Configuration
 
@@ -101,6 +107,7 @@ ETags weak (breaking every edit), and a blur filter causing a full repaint on ev
 | `APP_JWT_TTL` | Token lifetime, default `PT2H` |
 | `APP_ADMIN_EMAIL`, `APP_ADMIN_PASSWORD` | Creates an admin account on startup |
 | `APP_SEED_ENABLED` | Seeds demo data into an empty database |
+| `APP_LOGIN_MAX_FAILURES`, `APP_LOGIN_WINDOW` | Login limit, default 10 per `PT15M` |
 | `MONGODB_URI`, `ELASTICSEARCH_URIS` | Data stores |
 
 ## Project layout

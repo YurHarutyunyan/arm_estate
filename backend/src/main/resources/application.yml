@@ -23,6 +23,9 @@ app:
     ttl: ${APP_JWT_TTL:PT2H}
   seed:
     enabled: ${APP_SEED_ENABLED:false}
+  login:
+    max-failures: ${APP_LOGIN_MAX_FAILURES:10}
+    window: ${APP_LOGIN_WINDOW:PT15M}
   admin:
     # When both are set, an admin account is created on startup if it doesn't exist
     email: ${APP_ADMIN_EMAIL:}

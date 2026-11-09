@@ -30,7 +30,8 @@ React + TS (Vite) ──HTTP──▶ Spring Boot API ──▶ MongoDB (source 
   It stores the resume token so it continues where it stopped after a restart.
 - On startup, if the index is empty, a full reindex runs from MongoDB.
 - Search and suggest read from Elasticsearch. Details and favorites read from MongoDB.
-- MongoDB runs as a single-node replica set, because Change Streams require one.
+- MongoDB 9 runs as a single-node replica set, because Change Streams require one. (MongoDB 8
+  refuses to start on Linux kernels 6.19+, which CI runners use.)
 
 ## Data model
 
