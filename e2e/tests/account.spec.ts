@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { signUp } from './helpers'
+import { signUp, uniqueEmail } from './helpers'
 
 test.describe('accounts and favorites', () => {
   test('save a home, see it in favorites, then remove it', async ({ page }) => {
@@ -45,7 +45,8 @@ test.describe('accounts and favorites', () => {
 
   test('wrong password shows an error and stays signed out', async ({ page }) => {
     await page.goto('/login')
-    await page.getByLabel('Email').fill('nobody@example.com')
+    // A fresh address each run, so the per-account sign-in limit never kicks in across runs
+    await page.getByLabel('Email').fill(uniqueEmail('nobody'))
     await page.getByLabel('Password').fill('not the password')
     await page.getByRole('button', { name: 'Sign in' }).click()
 

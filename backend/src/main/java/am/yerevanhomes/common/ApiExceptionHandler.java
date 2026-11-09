@@ -4,14 +4,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import am.yerevanhomes.search.ListingIndex;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 
 /** Turns exceptions into RFC 9457 problem details. */
 @RestControllerAdvice
@@ -27,6 +32,14 @@ public class ApiExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     ProblemDetail unauthorized(UnauthorizedException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    ResponseEntity<ProblemDetail> tooManyRequests(TooManyRequestsException e) {
+        long seconds = Math.max(1, e.retryAfter().toSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
     }
 
     @ExceptionHandler(ForbiddenException.class)
@@ -81,6 +94,15 @@ public class ApiExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ProblemDetail lostRace(OptimisticLockingFailureException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PRECONDITION_FAILED, STALE);
+    }
+
+    /** Search runs before the sync has created the index, e.g. right after a fresh start. */
+    @ExceptionHandler(ElasticsearchException.class)
+    ProblemDetail searchUnavailable(ElasticsearchException e) {
+        if (!ListingIndex.isIndexMissing(e)) {
+            throw e;
+        }
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Search is starting up. Try again in a few seconds.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

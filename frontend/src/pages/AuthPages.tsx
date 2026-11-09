@@ -130,7 +130,7 @@ export function RegisterPage() {
       <Field id="email" label="Email" error={errors.email}>
         <input id="email" className="input" type="email" autoComplete="email" value={form.email} onChange={set('email')} />
       </Field>
-      <Field id="password" label="Password (at least 8 characters)" error={errors.password ?? (tooShort ? 'Use at least 8 characters' : undefined)}>
+      <Field id="password" label="Password (at least 8 characters)" error={errors.password ?? errors.passwordWithinBcryptLimit ?? (tooShort ? 'Use at least 8 characters' : undefined)}>
         <input
           id="password"
           className="input"

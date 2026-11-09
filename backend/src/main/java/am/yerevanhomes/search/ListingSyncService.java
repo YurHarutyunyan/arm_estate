@@ -72,8 +72,6 @@ public class ListingSyncService implements SmartLifecycle {
             log.info("Listing sync is disabled");
             return;
         }
-        index.createIfMissing();
-        enablePreImages();
         running = true;
         worker = Thread.ofVirtual().name("listing-sync").start(this::loop);
     }
@@ -123,6 +121,10 @@ public class ListingSyncService implements SmartLifecycle {
     }
 
     private void follow() {
+        // Done here rather than at startup, so the app starts even if Elasticsearch isn't up yet;
+        // the loop retries with backoff until both stores are reachable
+        index.createIfMissing();
+        enablePreImages();
         BsonDocument token = state.loadResumeToken();
         ChangeStreamIterable<Document> stream = mongo.getCollection("listings").watch()
                 .fullDocument(FullDocument.UPDATE_LOOKUP)

@@ -1,5 +1,6 @@
 package am.yerevanhomes.auth;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Locale;
 
@@ -12,6 +13,7 @@ import am.yerevanhomes.auth.AuthDtos.LoginRequest;
 import am.yerevanhomes.auth.AuthDtos.Profile;
 import am.yerevanhomes.auth.AuthDtos.RegisterRequest;
 import am.yerevanhomes.common.ConflictException;
+import am.yerevanhomes.common.TooManyRequestsException;
 import am.yerevanhomes.common.UnauthorizedException;
 import am.yerevanhomes.user.Role;
 import am.yerevanhomes.user.User;
@@ -25,13 +27,15 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwt;
+    private final LoginAttemptLimiter limiter;
     /** Compared against when the email is unknown, so both cases take the same time. */
     private final String dummyHash;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwt) {
+    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwt, LoginAttemptLimiter limiter) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwt;
+        this.limiter = limiter;
         this.dummyHash = passwordEncoder.encode("not-a-real-password");
     }
 
@@ -54,12 +58,19 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = users.findByEmail(normalize(request.email())).orElse(null);
+        String email = normalize(request.email());
+        Duration wait = limiter.retryAfter(email);
+        if (!wait.isZero()) {
+            throw new TooManyRequestsException("Too many failed sign-in attempts. Try again later.", wait);
+        }
+        User user = users.findByEmail(email).orElse(null);
         String hash = user == null ? dummyHash : user.getPasswordHash();
         boolean matches = passwordEncoder.matches(request.password(), hash);
         if (user == null || !matches) {
+            limiter.recordFailure(email);
             throw new UnauthorizedException(BAD_CREDENTIALS);
         }
+        limiter.recordSuccess(email);
         return respond(user);
     }
 

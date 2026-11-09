@@ -163,13 +163,23 @@ public class ListingIndex {
         }
     }
 
+    /** Number of indexed listings, or 0 while the index doesn't exist yet. */
     public long count() {
         try {
             client.indices().refresh(r -> r.index(NAME));
             return client.count(c -> c.index(NAME)).count();
+        } catch (ElasticsearchException e) {
+            if (isIndexMissing(e)) {
+                return 0;
+            }
+            throw e;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public static boolean isIndexMissing(ElasticsearchException e) {
+        return "index_not_found_exception".equals(e.error().type());
     }
 
     public record BulkResult(int written, int stale) {

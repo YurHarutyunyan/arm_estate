@@ -3,6 +3,10 @@ package am.yerevanhomes.auth;
 import static am.yerevanhomes.TestListings.validRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -32,6 +37,9 @@ class AuthApiTests {
 
     @Autowired
     RestTestClient client;
+
+    @LocalServerPort
+    int port;
 
     @Test
     void registersAndLogsInWithCaseInsensitiveEmail() {
@@ -57,6 +65,39 @@ class AuthApiTests {
         String unknownEmail = loginDetail("nobody@example.com", "wrong password!");
 
         assertThat(wrongPassword).isEqualTo(unknownEmail).isEqualTo("Invalid email or password");
+    }
+
+    @Test
+    void tooManyWrongPasswordsLockTheAccountTemporarilyEvenForTheRightOne() throws Exception {
+        TestAuth.Account account = TestAuth.register(client, "USER");
+        for (int i = 0; i < 10; i++) {
+            loginDetail(account.email(), "wrong password " + i);
+        }
+
+        // Plain JDK client: the default test client honors Retry-After and would wait 15 minutes
+        HttpResponse<String> response = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/auth/login"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(
+                                "{\"email\":\"" + account.email() + "\",\"password\":\"correct horse battery\"}"))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(429);
+        assertThat(response.headers().firstValue("Retry-After")).isPresent();
+    }
+
+    @Test
+    void passwordLimitCountsBytesNotCharacters() {
+        // 40 Armenian letters: 40 characters, but 80 bytes in UTF-8
+        String armenian = "բ".repeat(40);
+
+        client.post().uri("/api/auth/register")
+                .body(Map.of("email", "bytes-" + System.nanoTime() + "@example.com", "password", armenian,
+                        "displayName", "x", "accountType", "USER"))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.errors.passwordWithinBcryptLimit").exists();
     }
 
     @Test

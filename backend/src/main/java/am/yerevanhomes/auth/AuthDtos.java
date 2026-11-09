@@ -1,8 +1,10 @@
 package am.yerevanhomes.auth;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,14 +25,16 @@ public final class AuthDtos {
             @NotBlank @Size(min = 8, max = 72) String password,
             @NotBlank @Size(max = 60) String displayName,
             @NotNull AccountType accountType) {
+
+        /** @Size counts characters, but BCrypt's limit is bytes: 50 Armenian letters are 100 bytes. */
+        @AssertTrue(message = "password must be at most 72 bytes; use fewer non-Latin characters")
+        boolean isPasswordWithinBcryptLimit() {
+            return password == null || password.getBytes(StandardCharsets.UTF_8).length <= 72;
+        }
     }
 
     public enum AccountType {
-        USER, OWNER;
-
-        Role role() {
-            return Role.valueOf(name());
-        }
+        USER, OWNER
     }
 
     public record LoginRequest(@NotBlank @Size(max = 254) String email, @NotBlank @Size(max = 72) String password) {
